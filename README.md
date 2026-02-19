@@ -4,35 +4,65 @@ Professional installer for the SDDM Cadroc theme with automation, rollback suppo
 
 ## ✨ Features
 
-- Automated theme installation
-- Silent (non-interactive) mode
-- Automatic rollback on failure
-- Uninstall support
-- Environment detection (Wayland/X11)
-- Logging system
-- CI workflow integration
-- Multi-distro support
+* Automated theme installation
+* Silent (non-interactive) mode
+* Automatic rollback on failure
+* Uninstall support
+* Environment detection (Wayland/X11)
+* Logging system
+* CI workflow integration
+* Multi-distro support
 
 ## 📦 Requirements
 
-- Linux system with systemd
-- sudo privileges
-- git installed
-- Internet connection
+* Linux system with systemd
+* sudo privileges
+* git installed
+* Internet connection
 
 ## 🚀 Installation
 
-### Interactive mode
+### Clone repository
 
 ```bash
 git clone https://github.com/souandresouza/sddm-cadroc-theme.git
 cd sddm-cadroc-theme
 chmod +x installer.sh
+```
+
+### Interactive mode
+
+```bash
 ./installer.sh
+```
+
+### Silent installation
+
+```bash
 ./installer.sh --non-interactive
+```
+
+### Debug mode
+
+```bash
 ./installer.sh --debug
+```
+
+## 🗑 Uninstall
+
+```bash
 ./installer.sh --uninstall
+```
+
+## 🧪 Run tests
+
+```bash
 ./installer.sh --test
+```
+
+## 📁 Project Structure
+
+```
 .
 ├── installer.sh
 ├── README.md
@@ -41,15 +71,28 @@ chmod +x installer.sh
 └── .github/
     └── workflows/
         └── ci.yml
+```
+
+## 📝 Logging
+
+Logs are stored in:
+
+```
 /var/log/sddm-cadroc-installer.log
-🛠 Supported Package Managers
+```
 
-pacman (Arch)
+## 🛠 Supported Package Managers
 
-apt (Debian/Ubuntu)
+* pacman (Arch)
+* apt (Debian/Ubuntu)
+* dnf (Fedora)
+* zypper (openSUSE)
+* xbps-install (Void)
 
-dnf (Fedora)
+## 🤝 Contributing
 
-zypper (openSUSE)
+Contributions are welcome. Feel free to open issues or pull requests.
 
-xbps-install (Void)
+## 📄 License
+
+MIT License
