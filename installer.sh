@@ -1,186 +1,218 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -euo pipefail
 
-## SDDM Cadroc Theme Installer — Enterprise Edition
-
-readonly APP_NAME="sddm-cadroc-installer"
-readonly LOG_FILE="/var/log/${APP_NAME}.log"
+# =============================
+# CONFIG
+# =============================
 
 readonly THEME_REPO="https://github.com/souandresouza/sddm-cadroc-theme.git"
 readonly THEME_NAME="sddm-cadroc-theme"
 readonly THEMES_DIR="/usr/share/sddm/themes"
-readonly FONT_DIR="/usr/local/share/fonts/$THEME_NAME"
+readonly INSTALL_DIR="$HOME/$THEME_NAME"
+readonly DATE=$(date +%s)
 
-readonly BACKUP_SUFFIX=".$(date +%s).bak"
+readonly -a THEMES=(
+    "theme-01" "theme-02" "theme-03" "theme-04" "theme-05"
+    "theme-06" "theme-07" "theme-08"
+    "theme-09" "theme-10"
+)
 
 NON_INTERACTIVE=false
 DEBUG=false
-ROLLBACK_ACTIONS=()
+UNINSTALL=false
 
-# ---------------- LOGGING ----------------
+# =============================
+# LOGGING
+# =============================
 
-log(){
-    local level="$1"; shift
-    echo "[$(date '+%F %T')] [$level] $*" | sudo tee -a "$LOG_FILE" >/dev/null
-}
+info()  { echo -e "\e[32m[INFO]\e[0m $*"; }
+warn()  { echo -e "\e[33m[WARN]\e[0m $*"; }
+error() { echo -e "\e[31m[ERROR]\e[0m $*" >&2; }
 
-info(){ log INFO "$*"; }
-warn(){ log WARN "$*"; }
-error(){ log ERROR "$*"; }
+# =============================
+# PACKAGE MANAGER DETECTION
+# =============================
 
-# ---------------- ROLLBACK ----------------
-
-rollback(){
-    warn "Rollback triggered..."
-
-    for action in "${ROLLBACK_ACTIONS[@]}"; do
-        eval "$action" || true
-    done
-
-    warn "Rollback finished"
-}
-
-trap rollback ERR
-
-add_rollback(){
-    ROLLBACK_ACTIONS+=("$1")
-}
-
-# ---------------- ENV DETECTION ----------------
-
-detect_display(){
-    if loginctl show-session "$XDG_SESSION_ID" -p Type 2>/dev/null | grep -q wayland; then
-        info "Wayland detected"
-    else
-        info "X11 detected"
-    fi
-}
-
-detect_pkg_manager(){
-    for m in pacman xbps-install dnf zypper apt; do
+detect_pkg_manager() {
+    for m in pacman apt dnf zypper xbps-install; do
         command -v "$m" &>/dev/null && { echo "$m"; return; }
     done
     error "Unsupported package manager"
     exit 1
 }
 
-check_requirements(){
-    command -v git &>/dev/null || { error "git missing"; exit 1; }
-    command -v sudo &>/dev/null || { error "sudo missing"; exit 1; }
-}
+# =============================
+# INSTALL DEPENDENCIES
+# =============================
 
-# ---------------- INSTALL ----------------
-
-install_deps(){
+install_deps() {
     local mgr
     mgr=$(detect_pkg_manager)
-    info "Installing dependencies via $mgr"
+
+    info "Installing dependencies using $mgr"
 
     case $mgr in
-        pacman) sudo pacman --needed -S sddm ;;
-        dnf) sudo dnf install -y sddm ;;
-        apt) sudo apt update && sudo apt install -y sddm ;;
-        zypper) sudo zypper install -y sddm ;;
-        xbps-install) sudo xbps-install -y sddm ;;
+        pacman) sudo pacman --needed -S sddm qt6-svg qt6-virtualkeyboard qt6-multimedia ;;
+        apt) sudo apt update && sudo apt install -y sddm qt6-svg-dev qml6-module-qtquick-virtualkeyboard ;;
+        dnf) sudo dnf install -y sddm qt6-qtsvg qt6-qtvirtualkeyboard ;;
+        zypper) sudo zypper install -y sddm libQt6Svg6 qt6-virtualkeyboard ;;
+        xbps-install) sudo xbps-install -y sddm qt6-svg ;;
     esac
 }
 
-clone_repo(){
-    info "Cloning repository"
+# =============================
+# CLONE REPO
+# =============================
 
-    local tmp="/tmp/$THEME_NAME"
-    rm -rf "$tmp"
-
-    git clone --depth 1 "$THEME_REPO" "$tmp"
-
-    echo "$tmp"
+clone_repo() {
+    [[ -d "$INSTALL_DIR" ]] && mv "$INSTALL_DIR" "${INSTALL_DIR}_$DATE"
+    git clone --depth 1 "$THEME_REPO" "$INSTALL_DIR"
 }
 
-install_theme(){
-    local src="$1"
+# =============================
+# INSTALL THEME
+# =============================
+
+install_theme() {
+    local dst="$THEMES_DIR/$THEME_NAME"
+
+    [[ ! -d "$INSTALL_DIR" ]] && {
+        error "Repository not cloned"
+        exit 1
+    }
+
+    [[ -d "$dst" ]] && sudo mv "$dst" "${dst}_$DATE"
+
+    sudo mkdir -p "$dst"
+    sudo cp -r "$INSTALL_DIR"/* "$dst"/
+
+    echo -e "[Theme]\nCurrent=$THEME_NAME" | sudo tee /etc/sddm.conf >/dev/null
+}
+
+# =============================
+# SELECT THEME
+# =============================
+
+select_theme() {
+    local metadata="$THEMES_DIR/$THEME_NAME/metadata.desktop"
+
+    [[ ! -f "$metadata" ]] && {
+        error "Theme not installed"
+        exit 1
+    }
+
+    local theme="${THEMES[0]}"
+
+    if ! $NON_INTERACTIVE; then
+        echo "Select theme:"
+        select theme in "${THEMES[@]}"; do
+            [[ -n "$theme" ]] && break
+        done
+    fi
+
+    sudo sed -i "s|^ConfigFile=.*|ConfigFile=Themes/${theme}.conf|" "$metadata"
+    info "Theme selected: $theme"
+}
+
+# =============================
+# ENABLE SDDM
+# =============================
+
+enable_sddm() {
+    sudo systemctl disable display-manager.service 2>/dev/null || true
+    sudo systemctl enable sddm.service
+    warn "Reboot required"
+}
+
+# =============================
+# UNINSTALL
+# =============================
+
+uninstall_theme() {
     local dst="$THEMES_DIR/$THEME_NAME"
 
     if [[ -d "$dst" ]]; then
-        sudo mv "$dst" "$dst$BACKUP_SUFFIX"
-        add_rollback "sudo rm -rf '$dst'; sudo mv '$dst$BACKUP_SUFFIX' '$dst'"
+        sudo rm -rf "$dst"
+        info "Theme removed"
+    else
+        warn "Theme not installed"
+    fi
+}
+
+# =============================
+# TESTS
+# =============================
+
+run_tests() {
+    local test_script="$(dirname "$0")/tests/smoke-test.sh"
+
+    [[ ! -f "$test_script" ]] && {
+        error "Smoke test not found"
+        exit 1
+    }
+
+    chmod +x "$test_script"
+
+    info "Running smoke tests..."
+    "$test_script"
+
+    local result=$?
+
+    if [[ $result -eq 0 ]]; then
+        info "All tests passed ✅"
+    else
+        error "Tests failed ❌"
     fi
 
-    sudo mkdir -p "$dst"
-    sudo cp -r "$src"/* "$dst"
+    exit $result
+}
 
-    if [[ -d "$dst/Fonts" ]]; then
-        sudo mkdir -p "$FONT_DIR"
-        sudo cp -r "$dst/Fonts"/* "$FONT_DIR"
-        sudo fc-cache -f
-        add_rollback "sudo rm -rf '$FONT_DIR'"
+# =============================
+# MAIN INSTALL FLOW
+# =============================
+
+main() {
+    [[ $EUID -eq 0 ]] && {
+        error "Do not run as root"
+        exit 1
+    }
+
+    command -v git &>/dev/null || {
+        error "git is required"
+        exit 1
+    }
+
+    if $UNINSTALL; then
+        uninstall_theme
+        exit 0
     fi
 
-    sudo mkdir -p /etc/sddm.conf.d
-    echo -e "[Theme]\nCurrent=$THEME_NAME" \
-        | sudo tee /etc/sddm.conf.d/theme.conf >/dev/null
-
-    add_rollback "sudo rm -f /etc/sddm.conf.d/theme.conf"
-}
-
-enable_sddm(){
-    sudo systemctl enable sddm.service
-}
-
-uninstall(){
-    info "Uninstalling"
-
-    sudo rm -rf "$THEMES_DIR/$THEME_NAME"
-    sudo rm -rf "$FONT_DIR"
-    sudo rm -f /etc/sddm.conf.d/theme.conf
-
-    sudo fc-cache -f
-}
-
-# ---------------- PIPELINE ----------------
-
-pipeline(){
-    check_requirements
-    detect_display
     install_deps
-
-    local repo
-    repo=$(clone_repo)
-
-    install_theme "$repo"
+    clone_repo
+    install_theme
+    select_theme
     enable_sddm
 
-    info "Installation successful"
+    info "Installation complete"
 }
 
-# ---------------- CLI ----------------
+# =============================
+# ARGUMENT PARSER
+# =============================
 
-usage(){
-    echo "Usage: $0 [--non-interactive] [--uninstall] [--debug]"
+usage() {
+    echo "Usage: $0 [--non-interactive] [--uninstall] [--debug] [--test]"
 }
 
-parse_args(){
-    for arg in "$@"; do
-        case $arg in
-            --non-interactive) NON_INTERACTIVE=true ;;
-            --uninstall) uninstall; exit 0 ;;
-            --debug) DEBUG=true; set -x ;;
-            *) usage; exit 1 ;;
-        esac
-    done
-}
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --non-interactive) NON_INTERACTIVE=true ;;
+        --uninstall) UNINSTALL=true ;;
+        --debug) DEBUG=true; set -x ;;
+        --test) run_tests ;;
+        *) usage; exit 1 ;;
+    esac
+    shift
+done
 
-# ---------------- MAIN ----------------
-
-main(){
-    parse_args "$@"
-
-    if $NON_INTERACTIVE; then
-        pipeline
-    else
-        echo "SDDM Cadroc Installer"
-        read -rp "Install now? (y/n) " r
-        [[ "$r" =~ ^[Yy]$ ]] && pipeline
-    fi
-}
-
-main "$@"
+main
