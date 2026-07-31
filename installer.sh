@@ -12,9 +12,7 @@ readonly INSTALL_DIR="$HOME/$THEME_NAME"
 readonly DATE=$(date +%s)
 
 readonly -a THEMES=(
-    "theme-01" "theme-02" "theme-03" "theme-04" "theme-05"
-    "theme-06" "theme-07" "theme-08"
-    "theme-09" "theme-10"
+    "theme-05"
 )
 
 NON_INTERACTIVE=false
@@ -137,34 +135,6 @@ uninstall_theme() {
     else
         warn "Theme not installed"
     fi
-}
-
-# =============================
-# TESTS
-# =============================
-
-run_tests() {
-    local test_script="$(dirname "$0")/tests/smoke-test.sh"
-
-    [[ ! -f "$test_script" ]] && {
-        error "Smoke test not found"
-        exit 1
-    }
-
-    chmod +x "$test_script"
-
-    info "Running smoke tests..."
-    "$test_script"
-
-    local result=$?
-
-    if [[ $result -eq 0 ]]; then
-        info "All tests passed ✅"
-    else
-        error "Tests failed ❌"
-    fi
-
-    exit $result
 }
 
 # =============================
