@@ -54,20 +54,12 @@ chmod +x installer.sh
 ./installer.sh --uninstall
 ```
 
-## 🧪 Run tests
-
-```bash
-./installer.sh --test
-```
-
 ## 📁 Project Structure
 
 ```
 .
 ├── installer.sh
 ├── README.md
-├── tests/
-│   └── smoke-test.sh
 └── .github/
     └── workflows/
         └── ci.yml
