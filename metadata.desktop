@@ -1,15 +1,14 @@
 [SddmGreeterTheme]
 Name=sddm-cadroc-theme
-Description=sddm-cadroc-theme
+Description=Tema de login do Cadroc (Qt6/QML)
 Author=souandresouza
 Website=https://github.com/souandresouza/sddm-cadroc-theme
 License=GPL-3.0-or-later
 Type=sddm-theme
-Version=1.3
+Version=2.0
 ConfigFile=Themes/cadroc-default.conf
-Screenshot=Previews/
+Screenshot=Previews/screenshot.png
 MainScript=Main.qml
-TranslationsDirectory=translations
 Theme-Id=sddm-cadroc-theme
 Theme-API=2.0
 QtVersion=6

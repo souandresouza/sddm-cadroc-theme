@@ -1,7 +1,7 @@
-// Config created by souandresouza https://github.com/souandresouza/sddm-cadroc-theme
-// Copyright (C) 2026-2028 souandresouza
-// Based on https://github.com/Keyitdev/sddm-astronaut-theme
-// Distributed under the GPLv3+ License https://www.gnu.org/licenses/gpl-3.0.html
+// Tema de login do Cadroc -- https://github.com/souandresouza/sddm-cadroc-theme
+// Copyright (C) 2026 souandresouza
+// Derivado de https://github.com/Keyitdev/sddm-astronaut-theme (GPL-3.0-or-later)
+// Distribuído sob a licença GPL-3.0-or-later: https://www.gnu.org/licenses/gpl-3.0.html
 
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
@@ -14,9 +14,10 @@ import "Components"
 Pane {
     id: root
 
-    height: config.ScreenHeight || Screen.height
-    width: config.ScreenWidth || Screen.ScreenWidth
-    padding: config.ScreenPadding
+    // Vazio no conf = usa o tamanho real da tela (responsivo).
+    height: config.ScreenHeight !== "" ? Number(config.ScreenHeight) : Screen.height
+    width: config.ScreenWidth !== "" ? Number(config.ScreenWidth) : Screen.width
+    padding: config.ScreenPadding !== "" ? Number(config.ScreenPadding) : 0
 
     LayoutMirroring.enabled: config.RightToLeftLayout == "true" ? true : Qt.application.layoutDirection === Qt.RightToLeft
     LayoutMirroring.childrenInherit: true
@@ -27,7 +28,7 @@ Pane {
     palette.buttonText: config.HoverSystemButtonsIconsColor
 
     font.family: config.Font
-    font.pointSize: config.FontSize !== "" ? config.FontSize : parseInt(height / 80) || 13
+    font.pointSize: config.FontSize !== "" ? Number(config.FontSize) : parseInt(height / 80) || 13
     
     focus: true
 

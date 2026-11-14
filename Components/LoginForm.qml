@@ -6,7 +6,7 @@ ColumnLayout {
     id: formContainer
     SDDM.TextConstants { id: textConstants }
 
-    property int p: config.ScreenPadding == "" ? 0 : config.ScreenPadding
+    property int p: config.ScreenPadding !== "" ? Number(config.ScreenPadding) : 0
     property string a: config.FormPosition
 
     Clock {
@@ -15,6 +15,15 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
         // important
         Layout.preferredHeight: root.height / 3
+        Layout.leftMargin: p != "0" ? a == "left" ? -p : a == "right" ? p : 0 : 0
+    }
+
+    KeyboardLayout {
+        id: keyboardLayout
+
+        Layout.alignment: Qt.AlignHCenter
+        Layout.preferredHeight: visible ? root.height / 40 : 0
+        Layout.maximumHeight: visible ? root.height / 40 : 0
         Layout.leftMargin: p != "0" ? a == "left" ? -p : a == "right" ? p : 0 : 0
     }
 
